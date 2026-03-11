@@ -1,0 +1,28 @@
+# ── Variables de entorno ──────────────────────────────
+# NUNCA commitear. Contienen API keys, contraseñas, secrets.
+.env
+.env.local
+.env.production
+
+# ── Archivos subidos por usuarios ─────────────────────
+# Ignorar contenido pero mantener la carpeta via .gitkeep
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# ── Prisma: cliente generado ──────────────────────────
+# Se regenera con: npx prisma generate
+# Las MIGRACIONES sí se committean (están en prisma/migrations/)
+src/.prisma/
+
+# ── Cobertura de tests ────────────────────────────────
+# Se genera con: npm run test:coverage
+coverage/
+
+# ── Logs ──────────────────────────────────────────────
+logs/
+*.log
+
+# ── Build (cuando compilemos para producción) ─────────
+dist/
