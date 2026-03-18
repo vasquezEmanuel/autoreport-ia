@@ -1,0 +1,45 @@
+name: autoreport-test
+
+services:
+  postgres_test:
+    image: postgres:16-alpine
+    container_name: autoreport_db_test
+    environment:
+      POSTGRES_DB: autoreport_test
+      POSTGRES_USER: autoreport_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      # Puerto diferente al dev para no colisionar si ambos corren al mismo tiempo
+      - "5433:5432"
+    networks:
+      - autoreport_test_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autoreport_user -d autoreport_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend_test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: autoreport_api_test
+    environment:
+      NODE_ENV: test
+      PORT: 3001
+      DATABASE_URL: postgresql://autoreport_user:test_password@postgres_test:5432/autoreport_test?schema=public
+      JWT_SECRET: test_jwt_secret_32_characters_minimum_x
+      ANTHROPIC_API_KEY: test_key_mocked
+      UPLOAD_DIR: /tmp/test_uploads
+      REPORTS_DIR: /tmp/test_reports
+    depends_on:
+      postgres_test:
+        condition: service_healthy
+    networks:
+      - autoreport_test_net
+    # Corre los tests y sale — no queda corriendo como servicio
+    command: npm test
+
+networks:
+  autoreport_test_net:
+    driver: bridge

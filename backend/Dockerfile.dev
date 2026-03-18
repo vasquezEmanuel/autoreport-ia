@@ -1,0 +1,40 @@
+# ── Imagen base ───────────────────────────────────────────────────────────────
+# node:20-alpine = Node 20 LTS sobre Alpine Linux
+# Alpine es una distribución Linux minimalista (~5MB vs ~900MB de Ubuntu)
+# Ideal para contenedores: más rápido de descargar y más seguro (menos superficie de ataque)
+FROM node:20-alpine
+
+# ── Metadatos ─────────────────────────────────────────────────────────────────
+LABEL description="AutoReport IA — Backend API (Desarrollo)"
+
+# ── Dependencias del sistema ──────────────────────────────────────────────────
+# bcrypt necesita compilar código nativo, por eso requiere python3 y make
+RUN apk add --no-cache python3 make g++
+
+# ── Directorio de trabajo ─────────────────────────────────────────────────────
+# Todos los comandos siguientes se ejecutan dentro de /app
+WORKDIR /app
+
+# ── Instalar dependencias Node ────────────────────────────────────────────────
+# IMPORTANTE: copiar package*.json ANTES del código fuente
+# Docker cachea cada instrucción como una "capa".
+# Si solo cambia el código fuente (no el package.json),
+# Docker reutiliza la capa de node_modules sin reinstalar.
+# Esto hace los rebuilds mucho más rápidos.
+COPY package*.json ./
+RUN npm ci
+
+# ── Copiar código fuente ──────────────────────────────────────────────────────
+# En desarrollo este paso es casi redundante porque montamos src/ como volumen,
+# pero es necesario para que la imagen inicial tenga el código.
+COPY src ./src
+
+# ── Crear directorios de almacenamiento ───────────────────────────────────────
+RUN mkdir -p /app/uploads /app/reports
+
+# ── Puerto que expone el contenedor ──────────────────────────────────────────
+EXPOSE 3000
+
+# ── Comando por defecto ───────────────────────────────────────────────────────
+# nodemon reinicia el servidor cuando detecta cambios en el código
+CMD ["npm", "run", "dev"]
