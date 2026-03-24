@@ -11,16 +11,12 @@ services:
       POSTGRES_USER: autoreport_user
       POSTGRES_PASSWORD: dev_password_local
     volumes:
-      # Volumen nombrado: los datos de la BD persisten entre reinicios del contenedor
       - postgres_data:/var/lib/postgresql/data
     ports:
-      # puerto_host:puerto_contenedor
-      # Expuesto al host para que puedas conectarte con pgAdmin o DBeaver
       - "5432:5432"
     networks:
       - autoreport_net
     healthcheck:
-      # Docker verifica que PostgreSQL esté listo antes de arrancar el backend
       test: ["CMD-SHELL", "pg_isready -U autoreport_user -d autoreport_dev"]
       interval: 10s
       timeout: 5s
@@ -37,7 +33,6 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3000
-      # 'postgres' es el nombre del servicio de arriba — Docker resuelve el DNS automáticamente
       DATABASE_URL: postgresql://autoreport_user:dev_password_local@postgres:5432/autoreport_dev?schema=public
       JWT_SECRET: dev_jwt_secret_local_minimo_32_caracteres
       JWT_EXPIRES_IN: 24h
@@ -46,26 +41,22 @@ services:
       UPLOAD_DIR: /app/uploads
       REPORTS_DIR: /app/reports
     volumes:
-      # Hot reload: monta el código fuente del host dentro del contenedor
-      # Cuando cambias un archivo, nodemon lo detecta y reinicia el servidor
       - ./backend/src:/app/src
-      # Truco: evita que el volumen anterior sobreescriba node_modules del contenedor
+      # NUEVO — sincroniza prisma/ bidireccional: migraciones creadas en Docker
+      # aparecen automáticamente en tu máquina para poder commitearlas a Git
+      - ./backend/prisma:/app/prisma
       - /app/node_modules
-      # Persistencia de archivos subidos y reportes
       - uploads_data:/app/uploads
       - reports_data:/app/reports
     ports:
       - "3000:3000"
     depends_on:
       postgres:
-        # El backend no arranca hasta que PostgreSQL pase el healthcheck
         condition: service_healthy
     networks:
       - autoreport_net
     command: npm run dev
 
-# ── Volúmenes nombrados ───────────────────────────────────────────────────────
-# Los volúmenes nombrados persisten los datos aunque el contenedor se elimine
 volumes:
   postgres_data:
     name: autoreport_dev_postgres
@@ -74,8 +65,6 @@ volumes:
   reports_data:
     name: autoreport_dev_reports
 
-# ── Red interna ───────────────────────────────────────────────────────────────
-# Todos los servicios comparten esta red y se comunican por nombre de servicio
 networks:
   autoreport_net:
     name: autoreport_dev_network

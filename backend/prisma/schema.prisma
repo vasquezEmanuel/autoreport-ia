@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  name         String   @db.VarChar(100)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  configurators Configurator[]
+  reports       Report[]
+
+  @@map("users")
+}
+
+model Configurator {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  name         String   @db.VarChar(200)
+  pdfFields    Json     @default("[]") @map("pdf_fields")
+  excelColumns Json     @default("[]") @map("excel_columns")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports Report[]
+
+  @@map("configurators")
+}
+
+model Report {
+  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String       @map("user_id") @db.Uuid
+  configuratorId    String?      @map("configurator_id") @db.Uuid
+  title             String       @db.VarChar(300)
+  status            ReportStatus @default(PENDING)
+  pdfSourcePath     String?      @map("pdf_source_path") @db.VarChar(1000)
+  excelSourcePath   String?      @map("excel_source_path") @db.VarChar(1000)
+  pdfOriginalName   String?      @map("pdf_original_name") @db.VarChar(500)
+  excelOriginalName String?      @map("excel_original_name") @db.VarChar(500)
+  extractedData     Json?        @map("extracted_data")
+  exportOptions     Json?        @map("export_options")
+  outputPdfPath     String?      @map("output_pdf_path") @db.VarChar(1000)
+  outputFileName    String?      @map("output_file_name") @db.VarChar(300)
+  aiSummary         String?      @map("ai_summary") @db.Text
+  errorMessage      String?      @map("error_message") @db.Text
+  generatedAt       DateTime?    @map("generated_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  configurator Configurator? @relation(fields: [configuratorId], references: [id])
+
+  @@map("reports")
+}
+
+enum ReportStatus {
+  PENDING
+  UPLOADING
+  PROCESSING
+  REVIEWING
+  GENERATING
+  COMPLETED
+  ERROR
+
+  @@map("report_status")
+}

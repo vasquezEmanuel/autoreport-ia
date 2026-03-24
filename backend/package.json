@@ -25,6 +25,7 @@
   "author": "Steven Alipio, Robert Blandon, Emanuel Vasquez",
   "license": "MIT",
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
@@ -43,6 +44,7 @@
     "eslint-config-prettier": "^10.1.8",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
+    "prisma": "^5.22.0",
     "supertest": "^7.2.2",
     "vitest": "^4.1.0"
   }
