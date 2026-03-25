@@ -1,8 +1,6 @@
 'use strict';
 
-import { describe, it, expect } from 'vitest';
-import request from 'supertest';
-
+const request = require('supertest');
 const app = require('../../app');
 
 describe('GET /api/v1/health', () => {
@@ -29,7 +27,7 @@ describe('GET /api/v1/health', () => {
     });
   });
 
-  it('debe retornar timestamp en formato ISO válido', async () => {
+  it('debe retornar timestamp ISO válido', async () => {
     const response = await request(app).get('/api/v1/health');
 
     const timestamp = new Date(response.body.timestamp);

@@ -1,7 +1,5 @@
 'use strict';
 
-import { describe, it, expect } from 'vitest';
-
 const {
   AppError,
   ValidationError,
@@ -13,7 +11,6 @@ const {
 describe('AppError', () => {
   it('debe crear error con statusCode y errorCode correctos', () => {
     const error = new AppError('Test error', 400, 'TEST_CODE');
-
     expect(error.message).toBe('Test error');
     expect(error.statusCode).toBe(400);
     expect(error.errorCode).toBe('TEST_CODE');

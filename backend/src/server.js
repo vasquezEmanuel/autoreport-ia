@@ -29,7 +29,7 @@ const start = async () => {
       });
     });
 
-    const shutdown = async (signal) => {
+    const shutdown = (signal) => {
       logger.info(`${signal} recibido. Cerrando servidor...`);
       server.close(async () => {
         await prisma.$disconnect();
