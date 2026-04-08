@@ -6,18 +6,22 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const swaggerUi = require('swagger-ui-express');
 
+const swaggerSpec = require('./config/swagger');
 const { errorHandler } = require('./middleware/errorHandler.middleware');
 const logger = require('./utils/logger');
+
+const authRoutes = require('./routes/auth.routes');
+const configuratorRoutes = require('./routes/configurator.routes');
+const uploadRoutes = require('./routes/upload.routes');
+const reportRoutes = require('./routes/report.routes');
 
 const app = express();
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
-
-// Seguridad: agrega headers HTTP de protección
 app.use(helmet());
 
-// CORS: permite peticiones del frontend
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
@@ -26,7 +30,6 @@ app.use(
   })
 );
 
-// Logging de requests (silencioso en tests)
 if (process.env.NODE_ENV !== 'test') {
   app.use(
     morgan('dev', {
@@ -35,14 +38,14 @@ if (process.env.NODE_ENV !== 'test') {
   );
 }
 
-// Parseo del body JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// ─── RUTAS ────────────────────────────────────────────────────────────────────
+// ─── DOCUMENTACIÓN ────────────────────────────────────────────────────────────
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Health check — primer endpoint del sistema
-app.get('/api/v1/health', (_req, res) => {
+// ─── RUTAS ────────────────────────────────────────────────────────────────────
+app.get('/api/health', (_req, res) => {
   res.json({
     status: 'ok',
     version: '0.1.0',
@@ -51,7 +54,12 @@ app.get('/api/v1/health', (_req, res) => {
   });
 });
 
-// ─── RUTA NO ENCONTRADA ───────────────────────────────────────────────────────
+app.use('/api/auth', authRoutes);
+app.use('/api/configurators', configuratorRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/api/reports', reportRoutes);
+
+// ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use((_req, res) => {
   res.status(404).json({
     error: true,
@@ -60,7 +68,7 @@ app.use((_req, res) => {
   });
 });
 
-// ─── ERROR HANDLER GLOBAL (siempre al final) ──────────────────────────────────
+// ─── ERROR HANDLER ────────────────────────────────────────────────────────────
 app.use(errorHandler);
 
 module.exports = app;
