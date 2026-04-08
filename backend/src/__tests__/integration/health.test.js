@@ -5,19 +5,19 @@ const app = require('../../app');
 
 describe('GET /api/v1/health', () => {
   it('debe retornar status 200', async () => {
-    const response = await request(app).get('/api/v1/health');
+    const response = await request(app).get('/api/health');
 
     expect(response.status).toBe(200);
   });
 
   it('debe retornar status ok en el body', async () => {
-    const response = await request(app).get('/api/v1/health');
+    const response = await request(app).get('/api/health');
 
     expect(response.body.status).toBe('ok');
   });
 
   it('debe retornar version, environment y timestamp', async () => {
-    const response = await request(app).get('/api/v1/health');
+    const response = await request(app).get('/api/health');
 
     expect(response.body).toMatchObject({
       status: 'ok',
@@ -28,7 +28,7 @@ describe('GET /api/v1/health', () => {
   });
 
   it('debe retornar timestamp ISO válido', async () => {
-    const response = await request(app).get('/api/v1/health');
+    const response = await request(app).get('/api/health');
 
     const timestamp = new Date(response.body.timestamp);
     expect(timestamp.toString()).not.toBe('Invalid Date');
@@ -37,7 +37,7 @@ describe('GET /api/v1/health', () => {
 
 describe('Ruta no encontrada', () => {
   it('debe retornar 404 para rutas inexistentes', async () => {
-    const response = await request(app).get('/api/v1/ruta-que-no-existe');
+    const response = await request(app).get('/api/ruta-que-no-existe');
 
     expect(response.status).toBe(404);
     expect(response.body).toMatchObject({

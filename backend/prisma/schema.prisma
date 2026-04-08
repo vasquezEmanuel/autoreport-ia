@@ -17,8 +17,38 @@ model User {
 
   configurators Configurator[]
   reports       Report[]
+  uploads       Upload[]
+  refreshTokens RefreshToken[]
 
   @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Upload {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String     @map("user_id") @db.Uuid
+  fileName      String     @map("file_name") @db.VarChar(500)
+  storedPath    String     @map("stored_path") @db.VarChar(1000)
+  fileType      UploadType @map("file_type")
+  fileSizeBytes BigInt     @map("file_size_bytes")
+  createdAt     DateTime   @default(now()) @map("created_at")
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pdfReports   Report[] @relation("ReportPdfUpload")
+  excelReports Report[] @relation("ReportExcelUpload")
+
+  @@map("uploads")
 }
 
 model Configurator {
@@ -37,29 +67,35 @@ model Configurator {
 }
 
 model Report {
-  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String       @map("user_id") @db.Uuid
-  configuratorId    String?      @map("configurator_id") @db.Uuid
-  title             String       @db.VarChar(300)
-  status            ReportStatus @default(PENDING)
-  pdfSourcePath     String?      @map("pdf_source_path") @db.VarChar(1000)
-  excelSourcePath   String?      @map("excel_source_path") @db.VarChar(1000)
-  pdfOriginalName   String?      @map("pdf_original_name") @db.VarChar(500)
-  excelOriginalName String?      @map("excel_original_name") @db.VarChar(500)
-  extractedData     Json?        @map("extracted_data")
-  exportOptions     Json?        @map("export_options")
-  outputPdfPath     String?      @map("output_pdf_path") @db.VarChar(1000)
-  outputFileName    String?      @map("output_file_name") @db.VarChar(300)
-  aiSummary         String?      @map("ai_summary") @db.Text
-  errorMessage      String?      @map("error_message") @db.Text
-  generatedAt       DateTime?    @map("generated_at")
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String       @map("user_id") @db.Uuid
+  configuratorId  String?      @map("configurator_id") @db.Uuid
+  pdfUploadId     String?      @map("pdf_upload_id") @db.Uuid
+  excelUploadId   String?      @map("excel_upload_id") @db.Uuid
+  name            String       @db.VarChar(300)
+  status          ReportStatus @default(PENDING)
+  extractedFields Json?        @map("extracted_fields")
+  exportOptions   Json?        @map("export_options")
+  outputUrl       String?      @map("output_url") @db.VarChar(1000)
+  aiSummary       String?      @map("ai_summary") @db.Text
+  errorMessage    String?      @map("error_message") @db.Text
+  generatedAt     DateTime?    @map("generated_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   configurator Configurator? @relation(fields: [configuratorId], references: [id])
+  pdfUpload    Upload?       @relation("ReportPdfUpload", fields: [pdfUploadId], references: [id])
+  excelUpload  Upload?       @relation("ReportExcelUpload", fields: [excelUploadId], references: [id])
 
   @@map("reports")
+}
+
+enum UploadType {
+  PDF
+  EXCEL
+
+  @@map("upload_type")
 }
 
 enum ReportStatus {
