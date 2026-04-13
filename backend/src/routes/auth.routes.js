@@ -2,6 +2,9 @@
 
 const { Router } = require('express');
 const { authenticate } = require('../middleware/auth.middleware');
+const { validate } = require('../middleware/validate.middleware');
+const { registerSchema, loginSchema, refreshSchema } = require('../validators/auth.schema');
+const authController = require('../controllers/auth.controller');
 
 const router = Router();
 
@@ -21,23 +24,22 @@ const router = Router();
  *             properties:
  *               name:
  *                 type: string
+ *                 example: Steven Alipio
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: steven@example.com
  *               password:
  *                 type: string
  *                 minLength: 8
+ *                 example: miPassword123
  *     responses:
  *       201:
  *         description: Usuario creado exitosamente
- *       400:
- *         description: Datos inválidos
  *       409:
  *         description: El email ya está registrado
  */
-router.post('/register', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 1' });
-});
+router.post('/register', validate({ body: registerSchema }), authController.register);
 
 /**
  * @swagger
@@ -56,29 +58,17 @@ router.post('/register', (_req, res) => {
  *               email:
  *                 type: string
  *                 format: email
+ *                 example: steven@example.com
  *               password:
  *                 type: string
+ *                 example: miPassword123
  *     responses:
  *       200:
  *         description: Login exitoso
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *                     tokens:
- *                       $ref: '#/components/schemas/Tokens'
  *       401:
  *         description: Credenciales inválidas
  */
-router.post('/login', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 1' });
-});
+router.post('/login', validate({ body: loginSchema }), authController.login);
 
 /**
  * @swagger
@@ -98,35 +88,11 @@ router.post('/login', (_req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Tokens renovados
+ *         description: Token renovado
  *       401:
- *         description: Refresh token inválido o expirado
+ *         description: Refresh token inválido
  */
-router.post('/refresh', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 1' });
-});
-
-/**
- * @swagger
- * /api/auth/me:
- *   get:
- *     summary: Obtener perfil del usuario autenticado
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Perfil del usuario
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/User'
- *       401:
- *         description: No autenticado
- */
-router.get('/me', authenticate, (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 1' });
-});
+router.post('/refresh', validate({ body: refreshSchema }), authController.refresh);
 
 /**
  * @swagger
@@ -136,14 +102,34 @@ router.get('/me', authenticate, (_req, res) => {
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Sesión cerrada
+ */
+router.post('/logout', authenticate, authController.logout);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Perfil del usuario autenticado
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Datos del usuario
  *       401:
  *         description: No autenticado
  */
-router.post('/logout', authenticate, (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 1' });
-});
+router.get('/me', authenticate, authController.me);
 
 module.exports = router;
