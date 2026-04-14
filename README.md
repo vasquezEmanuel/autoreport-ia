@@ -1,15 +1,19 @@
 # AutoReport IA — Backend
 
-API REST para generación automática de reportes con IA.
+API REST para la generación automática de reportes con IA.
+
+---
 
 ## Requisitos
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
-- [Git](https://git-scm.com/)
+- Docker Desktop instalado y en ejecución  
+- Git  
 
-## Correr en local
+---
 
-**1. Clonar el repositorio y posicionarse en develop**
+## Ejecución en local
+
+### 1. Clonar el repositorio y posicionarse en la rama `develop`
 
 ```bash
 git clone https://github.com/TU_USUARIO/autoreport-ia.git
@@ -17,33 +21,43 @@ cd autoreport-ia
 git checkout develop
 ```
 
-**2. Configurar variables de entorno**
+---
+
+### 2. Configurar variables de entorno
 
 ```bash
 cp backend/.env.example backend/.env
 ```
 
-Editar `backend/.env` y completar:
+Editar el archivo `backend/.env` y completar:
 
-- `JWT_SECRET` — string aleatorio de mínimo 32 caracteres
-- `ANTHROPIC_API_KEY` — obtener en [console.anthropic.com](https://console.anthropic.com)
+- `JWT_SECRET`: string aleatorio de mínimo 32 caracteres  
+- `ANTHROPIC_API_KEY`: obtener en https://console.anthropic.com  
 
-**3. Levantar el entorno**
+---
+
+### 3. Levantar el entorno
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build -d
 ```
 
-**4. Aplicar migraciones de base de datos**
+---
+
+### 4. Aplicar migraciones de base de datos
 
 ```bash
 docker exec -it autoreport_api npx prisma migrate dev --name init
 ```
 
-**5. Verificar que funciona**
+---
 
-- API: http://localhost:3000/api/health
-- Documentación: http://localhost:3000/api/docs
+### 5. Verificar que el sistema funciona
+
+- API: http://localhost:3000/api/health  
+- Documentación: http://localhost:3000/api/docs  
+
+---
 
 ## Comandos útiles
 
@@ -54,7 +68,7 @@ docker logs autoreport_api -f
 # Correr tests
 docker exec autoreport_api npm test
 
-# Abrir explorador de BD
+# Abrir explorador de base de datos
 docker exec autoreport_api npx prisma studio --port 5555 --browser none
 # Luego abrir http://localhost:5555
 
@@ -62,25 +76,31 @@ docker exec autoreport_api npx prisma studio --port 5555 --browser none
 docker compose -f docker-compose.dev.yml down
 ```
 
+---
+
 ## Estructura del proyecto
 
+```bash
 backend/
-├── prisma/ # Schema y migraciones de BD
+├── prisma/          # Schema y migraciones de base de datos
 └── src/
-├── config/ # Configuración (BD, Swagger, storage)
-├── controllers/ # Reciben HTTP y responden
-├── middleware/ # Auth, validación, errores
-├── repositories/# Queries a la BD
-├── routes/ # Definición de endpoints
-├── services/ # Lógica de negocio
-├── utils/ # Helpers (logger, errors, response)
-└── validators/ # Schemas de validación Zod
+    ├── config/      # Configuración (BD, Swagger, storage)
+    ├── controllers/ # Manejo de requests HTTP
+    ├── middleware/  # Auth, validación, manejo de errores
+    ├── repositories/# Acceso y queries a la base de datos
+    ├── routes/      # Definición de endpoints
+    ├── services/    # Lógica de negocio
+    ├── utils/       # Helpers (logger, errors, response)
+    └── validators/  # Esquemas de validación (Zod)
+```
+
+---
 
 ## Convención de commits
 
-feat: nueva funcionalidad
-fix: corrección de bug
-chore: configuración o mantenimiento
-test: agregar o modificar tests
-docs: documentación
-refactor: refactorización
+- `feat:` nueva funcionalidad  
+- `fix:` corrección de bugs  
+- `chore:` tareas de mantenimiento o configuración  
+- `test:` agregar o modificar tests  
+- `docs:` documentación  
+- `refactor:` refactorización de código  
