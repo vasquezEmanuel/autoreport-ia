@@ -42,9 +42,8 @@ services:
       REPORTS_DIR: /app/reports
     volumes:
       - ./backend/src:/app/src
-      # NUEVO — sincroniza prisma/ bidireccional: migraciones creadas en Docker
-      # aparecen automáticamente en tu máquina para poder commitearlas a Git
       - ./backend/prisma:/app/prisma
+      - ./backend/vitest.config.mjs:/app/vitest.config.mjs
       - /app/node_modules
       - uploads_data:/app/uploads
       - reports_data:/app/reports

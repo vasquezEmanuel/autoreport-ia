@@ -2,10 +2,15 @@
 
 const uploadService = require('../services/upload.service');
 const { created } = require('../utils/response');
+const { ValidationError } = require('../utils/errors');
 
 const uploadController = {
-  // POST /api/uploads
   upload: async (req, res) => {
+    // Verificar que Multer procesó el archivo correctamente
+    if (!req.file) {
+      throw new ValidationError('No se recibió ningún archivo.');
+    }
+
     const { type } = req.body;
     const { userId } = req.user;
 

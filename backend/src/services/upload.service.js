@@ -5,7 +5,6 @@ const fs = require('fs');
 const uploadRepository = require('../repositories/upload.repository');
 const { ValidationError, NotFoundError, ForbiddenError } = require('../utils/errors');
 
-// Tipos MIME permitidos por tipo de archivo
 const ALLOWED_MIMES = {
   PDF: ['application/pdf'],
   EXCEL: [
@@ -15,20 +14,32 @@ const ALLOWED_MIMES = {
   ],
 };
 
+const safeDeleteFile = (filePath) => {
+  try {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (_err) {
+    // Ignorar error si no se puede eliminar
+  }
+};
+
 const uploadService = {
-  // POST /api/uploads
   saveFile: async ({ file, type, userId }) => {
-    // Verificar que el tipo MIME del archivo coincide con el tipo declarado
     const allowedMimes = ALLOWED_MIMES[type];
-    if (!allowedMimes || !allowedMimes.includes(file.mimetype)) {
-      // Eliminar el archivo subido si el tipo no coincide
-      fs.unlinkSync(file.path);
+
+    if (!allowedMimes) {
+      safeDeleteFile(file.path);
+      throw new ValidationError(`Tipo de archivo no válido: ${type}`);
+    }
+
+    if (!allowedMimes.includes(file.mimetype)) {
+      safeDeleteFile(file.path);
       throw new ValidationError(
         `El archivo no corresponde al tipo ${type}. Tipo recibido: ${file.mimetype}`
       );
     }
 
-    // Guardar el registro en la BD
     const upload = await uploadRepository.create({
       userId,
       fileName: file.originalname,
@@ -44,7 +55,6 @@ const uploadService = {
     };
   },
 
-  // Obtener un upload verificando que pertenece al usuario
   getUpload: async ({ uploadId, userId }) => {
     const upload = await uploadRepository.findById(uploadId);
 
@@ -52,7 +62,6 @@ const uploadService = {
       throw new NotFoundError('Upload');
     }
 
-    // Verificar que el archivo pertenece al usuario que lo solicita
     if (upload.userId !== userId) {
       throw new ForbiddenError('No tienes acceso a este archivo.');
     }
