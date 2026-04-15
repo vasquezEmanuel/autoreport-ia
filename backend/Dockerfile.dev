@@ -1,0 +1,34 @@
+# ── Imagen base ───────────────────────────────────────────────────────────────
+FROM node:20-alpine
+
+# ── Metadatos ─────────────────────────────────────────────────────────────────
+LABEL description="AutoReport IA — Backend API (Desarrollo)"
+
+# ── Dependencias del sistema ──────────────────────────────────────────────────
+# bcrypt necesita compilar código nativo, por eso requiere python3 y make
+# openssl es requerido por Prisma en Alpine Linux
+RUN apk add --no-cache python3 make g++ openssl
+
+# ── Directorio de trabajo ─────────────────────────────────────────────────────
+WORKDIR /app
+
+# ── Instalar dependencias Node ────────────────────────────────────────────────
+COPY package*.json ./
+RUN npm ci
+
+# ── Copiar Prisma y generar cliente ──────────────────────────────────────────
+# Debe ir ANTES de copiar src/ para aprovechar el cache de Docker
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# ── Copiar código fuente ──────────────────────────────────────────────────────
+COPY src ./src
+
+# ── Crear directorios de almacenamiento ───────────────────────────────────────
+RUN mkdir -p /app/uploads /app/reports
+
+# ── Puerto ────────────────────────────────────────────────────────────────────
+EXPOSE 3000
+
+# ── Comando por defecto ───────────────────────────────────────────────────────
+CMD ["npm", "run", "dev"]

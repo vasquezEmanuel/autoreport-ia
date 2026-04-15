@@ -137,3 +137,8 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Archivos temporales generados por tests
+src/__tests__/**/*.pdf
+src/__tests__/**/*.xlsx
+src/__tests__/**/*.csv

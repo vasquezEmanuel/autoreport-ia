@@ -1,0 +1,37 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# pr-check.yml — Validaciones específicas de Pull Requests
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: PR — Validaciones
+
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # ── Validar que no se subieron archivos sensibles ──────────────────────────
+  security-check:
+    name: 🔐 Verificar archivos sensibles
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verificar que no hay archivos .env commiteados
+        run: |
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^.*\.env$'; then
+            echo "❌ ERROR: Se detectó un archivo .env en el PR"
+            echo "Los archivos .env contienen secretos y NUNCA deben commitearse"
+            exit 1
+          fi
+          echo "✅ No se detectaron archivos .env"
+
+      - name: Buscar API keys hardcodeadas
+        run: |
+          if grep -r --include="*.js" -E "(sk-ant-api|AKIA[0-9A-Z]{16})" --exclude-dir=node_modules .; then
+            echo "❌ Se detectaron posibles API keys en el código"
+            exit 1
+          fi
+          echo "✅ No se detectaron API keys hardcodeadas"
