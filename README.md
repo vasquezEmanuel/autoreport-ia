@@ -1,4 +1,4 @@
-# AutoReport IA — Backend
+# autoreport-ia
 
 API REST para la generación automática de reportes con IA.
 
@@ -6,8 +6,8 @@ API REST para la generación automática de reportes con IA.
 
 ## Requisitos
 
-- Docker Desktop instalado y en ejecución  
-- Git  
+- Docker Desktop instalado y en ejecución
+- Git
 
 ---
 
@@ -31,8 +31,8 @@ cp backend/.env.example backend/.env
 
 Editar el archivo `backend/.env` y completar:
 
-- `JWT_SECRET`: string aleatorio de mínimo 32 caracteres  
-- `ANTHROPIC_API_KEY`: obtener en https://console.anthropic.com  
+- `JWT_SECRET`: string aleatorio de mínimo 32 caracteres
+- `ANTHROPIC_API_KEY`: obtener en https://console.anthropic.com
 
 ---
 
@@ -54,8 +54,8 @@ docker exec -it autoreport_api npx prisma migrate dev --name init
 
 ### 5. Verificar que el sistema funciona
 
-- API: http://localhost:3000/api/health  
-- Documentación: http://localhost:3000/api/docs  
+- API: http://localhost:3000/api/health
+- Documentación: http://localhost:3000/api/docs
 
 ---
 
@@ -98,9 +98,9 @@ backend/
 
 ## Convención de commits
 
-- `feat:` nueva funcionalidad  
-- `fix:` corrección de bugs  
-- `chore:` tareas de mantenimiento o configuración  
-- `test:` agregar o modificar tests  
-- `docs:` documentación  
-- `refactor:` refactorización de código  
+- `feat:` nueva funcionalidad
+- `fix:` corrección de bugs
+- `chore:` tareas de mantenimiento o configuración
+- `test:` agregar o modificar tests
+- `docs:` documentación
+- `refactor:` refactorización de código
