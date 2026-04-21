@@ -2,6 +2,9 @@
 
 const { Router } = require('express');
 const { authenticate } = require('../middleware/auth.middleware');
+const { validate } = require('../middleware/validate.middleware');
+const { createReportSchema, patchFieldSchema } = require('../validators/report.schema');
+const reportController = require('../controllers/report.controller');
 
 const router = Router();
 router.use(authenticate);
@@ -17,10 +20,24 @@ router.use(authenticate);
  *     responses:
  *       200:
  *         description: Estadísticas del usuario
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalReports:
+ *                       type: integer
+ *                     thisMonth:
+ *                       type: integer
+ *                     configurators:
+ *                       type: integer
+ *                     inProgress:
+ *                       type: integer
  */
-router.get('/stats', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.get('/stats', reportController.getStats);
 
 /**
  * @swagger
@@ -35,23 +52,23 @@ router.get('/stats', (_req, res) => {
  *         name: page
  *         schema:
  *           type: integer
+ *           default: 1
  *       - in: query
  *         name: pageSize
  *         schema:
  *           type: integer
+ *           default: 10
  *     responses:
  *       200:
  *         description: Lista paginada de reportes
  */
-router.get('/', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.get('/', reportController.findAll);
 
 /**
  * @swagger
  * /api/reports/{id}:
  *   get:
- *     summary: Obtener un reporte por ID
+ *     summary: Obtener reporte por ID
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -65,17 +82,15 @@ router.get('/', (_req, res) => {
  *       200:
  *         description: Reporte encontrado
  *       404:
- *         description: Reporte no encontrado
+ *         description: No encontrado
  */
-router.get('/:id', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.get('/:id', reportController.findById);
 
 /**
  * @swagger
  * /api/reports:
  *   post:
- *     summary: Crear nuevo reporte
+ *     summary: Crear nuevo reporte y procesar con IA
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -95,19 +110,21 @@ router.get('/:id', (_req, res) => {
  *                 type: string
  *               excelUploadId:
  *                 type: string
+ *               pdfFields:
+ *                 type: array
+ *               excelColumns:
+ *                 type: array
  *     responses:
  *       201:
- *         description: Reporte creado
+ *         description: Reporte creado y procesando
  */
-router.post('/', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.post('/', validate({ body: createReportSchema }), reportController.create);
 
 /**
  * @swagger
  * /api/reports/{id}/fields:
  *   patch:
- *     summary: Actualizar campos extraídos del reporte
+ *     summary: Editar un campo extraído del reporte
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -117,19 +134,29 @@ router.post('/', (_req, res) => {
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fieldName, value]
+ *             properties:
+ *               fieldName:
+ *                 type: string
+ *               value:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Campos actualizados
+ *         description: Campo actualizado
  */
-router.patch('/:id/fields', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.patch('/:id/fields', validate({ body: patchFieldSchema }), reportController.updateField);
 
 /**
  * @swagger
  * /api/reports/{id}/generate:
  *   post:
- *     summary: Generar el PDF final del reporte
+ *     summary: Generar PDF final del reporte
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -141,24 +168,25 @@ router.patch('/:id/fields', (_req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Reporte generado
+ *         description: PDF generado
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 outputUrl:
- *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     outputUrl:
+ *                       type: string
  */
-router.post('/:id/generate', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 3' });
-});
+router.post('/:id/generate', reportController.generate);
 
 /**
  * @swagger
  * /api/reports/{id}/download:
  *   get:
- *     summary: Descargar el PDF del reporte
+ *     summary: Descargar reporte generado
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -170,22 +198,15 @@ router.post('/:id/generate', (_req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Archivo PDF
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
+ *         description: Datos del reporte
  */
-router.get('/:id/download', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 3' });
-});
+router.get('/:id/download', reportController.download);
 
 /**
  * @swagger
  * /api/reports/{id}:
  *   delete:
- *     summary: Eliminar un reporte
+ *     summary: Eliminar reporte
  *     tags: [Reports]
  *     security:
  *       - bearerAuth: []
@@ -196,11 +217,9 @@ router.get('/:id/download', (_req, res) => {
  *         schema:
  *           type: string
  *     responses:
- *       200:
- *         description: Reporte eliminado
+ *       204:
+ *         description: Eliminado
  */
-router.delete('/:id', (_req, res) => {
-  res.status(501).json({ message: 'Not implemented — Sprint 2' });
-});
+router.delete('/:id', reportController.delete);
 
 module.exports = router;
