@@ -19,6 +19,21 @@ const reportRoutes = require('./routes/report.routes');
 
 const app = express();
 
+// ─── SERIALIZAR BigInt ────────────────────────────────────────────────────────
+// JSON.stringify no soporta BigInt por defecto.
+// El campo fileSizeBytes en uploads es BigInt — lo convertimos a string.
+JSON.stringify = (
+  (original) => (value, replacer, space) =>
+    original(
+      value,
+      (key, val) => {
+        if (typeof val === 'bigint') return val.toString();
+        return typeof replacer === 'function' ? replacer(key, val) : val;
+      },
+      space
+    )
+)(JSON.stringify);
+
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
 app.use(helmet());
 
