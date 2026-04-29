@@ -67,6 +67,13 @@ const reportRepository = {
     });
   },
 
+  updatePdfPath: async (id, pdfPath) => {
+    return prisma.report.update({
+      where: { id },
+      data: { pdfPath },
+    });
+  },
+
   delete: async (id) => {
     return prisma.report.delete({ where: { id } });
   },
