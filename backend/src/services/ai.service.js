@@ -1,18 +1,17 @@
 'use strict';
 
 const fs = require('fs');
-const pdfParse = require('pdf-parse');
+const path = require('path');
 const XLSX = require('xlsx');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// ─── Extractor de texto PDF ───────────────────────────────────────────────────
-const extractPdfText = async (filePath) => {
-  try {
-    const buffer = fs.readFileSync(filePath);
-    const data = await pdfParse(buffer);
-    return data.text;
-  } catch {
-    return '';
+// ─── Cliente Gemini ───────────────────────────────────────────────────────────
+const getGeminiClient = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === 'placeholder') {
+    return null;
   }
+  return new GoogleGenerativeAI(apiKey);
 };
 
 // ─── Extractor de datos Excel ─────────────────────────────────────────────────
@@ -25,6 +24,7 @@ const extractExcelData = (filePath, excelColumns) => {
       if (!colConfig.active) continue;
 
       const sheet = workbook.Sheets[colConfig.sheet] || workbook.Sheets[workbook.SheetNames[0]];
+
       if (!sheet) continue;
 
       const cellRef = `${colConfig.column}${colConfig.startRow}`;
@@ -46,72 +46,131 @@ const extractExcelData = (filePath, excelColumns) => {
   }
 };
 
-// ─── Mock de extracción IA ────────────────────────────────────────────────────
-// Cuando tengas la API key de Anthropic, reemplaza esta función
-// por la llamada real a Claude. Todo lo demás permanece igual.
-const mockExtractWithAI = (pdfText, pdfFields) => {
-  return pdfFields.map((field) => {
-    // Intento básico de encontrar el valor en el texto del PDF
-    // La IA real haría esto de forma inteligente
-    const lines = pdfText.split('\n').filter((l) => l.trim());
-    let foundValue = null;
-    let confidence = 0.75;
+// ─── Extracción de campos del PDF con Gemini ──────────────────────────────────
+const extractFromPDFWithGemini = async (filePath, pdfFields) => {
+  const genAI = getGeminiClient();
 
-    // Búsqueda simple por palabras clave del nombre del campo
-    const keywords = field.name.toLowerCase().split(' ');
-    for (const line of lines) {
-      const lineLower = line.toLowerCase();
-      if (keywords.some((kw) => lineLower.includes(kw))) {
-        foundValue = line.trim();
-        confidence = 0.85;
-        break;
-      }
-    }
-
-    const meetsConfidence = confidence * 100 >= field.minConfidence;
-
-    return {
+  // Si no hay API key usar mock
+  if (!genAI) {
+    return pdfFields.map((field) => ({
       fieldName: field.name,
-      value: foundValue || `[Valor de ${field.name} no encontrado]`,
+      value: `[Mock] Valor de ${field.name}`,
       source: 'PDF',
-      confidence: Math.round(confidence * 100),
-      status: meetsConfidence ? 'OK' : 'REVIEW',
-    };
-  });
+      confidence: 75,
+      status: 'REVIEW',
+    }));
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    // Leer el PDF como base64
+    const pdfBuffer = fs.readFileSync(filePath);
+    const pdfBase64 = pdfBuffer.toString('base64');
+
+    // Construir el prompt con los campos a extraer
+    const fieldsDescription = pdfFields
+      .map((f) => `- "${f.name}": ${f.instruction} (tipo: ${f.type})`)
+      .join('\n');
+
+    const prompt = `Eres un extractor de datos de documentos. 
+Analiza el PDF adjunto y extrae exactamente estos campos:
+${fieldsDescription}
+
+Responde ÚNICAMENTE con un array JSON válido con este formato exacto:
+[
+  {
+    "fieldName": "nombre exacto del campo",
+    "value": "valor extraído como string",
+    "confidence": número entre 0 y 100,
+    "status": "OK" o "REVIEW"
+  }
+]
+
+Usa "REVIEW" si el valor no es claro o tiene baja confianza.
+No incluyas explicaciones, solo el JSON.`;
+
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: 'application/pdf',
+          data: pdfBase64,
+        },
+      },
+      prompt,
+    ]);
+
+    const responseText = result.response.text();
+
+    // Limpiar respuesta y parsear JSON
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Respuesta de IA no es JSON válido');
+
+    const extracted = JSON.parse(jsonMatch[0]);
+
+    // Agregar source PDF a cada campo
+    return extracted.map((item) => ({
+      ...item,
+      source: 'PDF',
+    }));
+  } catch (error) {
+    // Si Gemini falla retornar campos con status REVIEW
+    return pdfFields.map((field) => ({
+      fieldName: field.name,
+      value: 'Error al extraer — revisar manualmente',
+      source: 'PDF',
+      confidence: 0,
+      status: 'REVIEW',
+    }));
+  }
 };
 
-// ─── Función real con Claude (activar cuando tengas API key) ──────────────────
-// const callClaude = async (pdfText, pdfFields) => {
-//   const Anthropic = require('@anthropic-ai/sdk');
-//   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-//
-//   const prompt = `Eres un extractor de datos. Del siguiente texto de PDF,
-//   extrae estos campos: ${JSON.stringify(pdfFields)}.
-//   Texto del PDF: ${pdfText.substring(0, 8000)}
-//   Responde SOLO con JSON: [{ fieldName, value, confidence, status }]`;
-//
-//   const message = await client.messages.create({
-//     model: 'claude-sonnet-4-5-20251001',
-//     max_tokens: 2048,
-//     messages: [{ role: 'user', content: prompt }],
-//   });
-//
-//   return JSON.parse(message.content[0].text);
-// };
+// ─── Generar resumen ejecutivo con Gemini ─────────────────────────────────────
+const generateSummary = async (reportName, extractedFields) => {
+  const genAI = getGeminiClient();
 
+  if (!genAI) {
+    return `Resumen mock del reporte "${reportName}". Los datos han sido extraídos correctamente y están listos para revisión.`;
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const fieldsText = extractedFields
+      .map((f) => `${f.fieldName}: ${f.value} (fuente: ${f.source})`)
+      .join('\n');
+
+    const prompt = `Eres un analista de negocios. 
+Genera un resumen ejecutivo breve (máximo 3 párrafos) del siguiente reporte llamado "${reportName}".
+
+Datos extraídos:
+${fieldsText}
+
+El resumen debe:
+- Describir qué contiene el reporte
+- Destacar los datos más importantes
+- Usar tono profesional y formal en español
+- Ser conciso y directo`;
+
+    const result = await model.generateContent(prompt);
+    return result.response.text();
+  } catch {
+    return `Resumen del reporte "${reportName}". Los datos han sido procesados exitosamente.`;
+  }
+};
+
+// ─── Servicio principal ───────────────────────────────────────────────────────
 const aiService = {
-  // Procesa un reporte: extrae datos del PDF con IA y del Excel directamente
   processReport: async ({ pdfUpload, excelUpload, pdfFields, excelColumns }) => {
     const extractedFields = [];
 
-    // 1. Extraer datos del PDF con IA (mock por ahora)
+    // Extraer datos del PDF con Gemini
     if (pdfUpload && pdfFields.length > 0) {
-      const pdfText = await extractPdfText(pdfUpload.storedPath);
-      const pdfResults = mockExtractWithAI(pdfText, pdfFields);
+      const pdfResults = await extractFromPDFWithGemini(pdfUpload.storedPath, pdfFields);
       extractedFields.push(...pdfResults);
     }
 
-    // 2. Extraer datos del Excel directamente (sin IA)
+    // Extraer datos del Excel directamente
     if (excelUpload && excelColumns.length > 0) {
       const excelResults = extractExcelData(excelUpload.storedPath, excelColumns);
       extractedFields.push(...excelResults);
@@ -119,6 +178,8 @@ const aiService = {
 
     return extractedFields;
   },
+
+  generateSummary,
 };
 
 module.exports = aiService;

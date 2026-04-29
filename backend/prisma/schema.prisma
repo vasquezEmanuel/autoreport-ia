@@ -77,6 +77,7 @@ model Report {
   extractedFields Json?        @map("extracted_fields")
   exportOptions   Json?        @map("export_options")
   outputUrl       String?      @map("output_url") @db.VarChar(1000)
+  pdfPath         String?      @map("pdf_path") @db.VarChar(1000)
   aiSummary       String?      @map("ai_summary") @db.Text
   errorMessage    String?      @map("error_message") @db.Text
   generatedAt     DateTime?    @map("generated_at")

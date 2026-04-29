@@ -83,14 +83,34 @@ const reportController = {
       });
     }
 
-    // Por ahora retornamos los datos del reporte como JSON
-    // En Sprint 3 aquí serviremos el archivo PDF real
-    return success(res, {
-      reportId: report.id,
-      name: report.name,
-      extractedFields: report.extractedFields,
-      outputUrl: report.outputUrl,
-    });
+    // Buscar el archivo PDF en disco
+    const fs = require('fs');
+    const path = require('path');
+    const REPORTS_DIR = process.env.REPORTS_DIR || path.join(__dirname, '../../reports');
+
+    // Buscar el PDF del reporte
+    const files = fs.readdirSync(REPORTS_DIR);
+    const pdfFile = files.find((f) => f.startsWith(`report_${id}`));
+
+    if (!pdfFile) {
+      return res.status(404).json({
+        error: true,
+        message: 'Archivo PDF no encontrado.',
+        code: 'PDF_NOT_FOUND',
+      });
+    }
+
+    const pdfPath = path.join(REPORTS_DIR, pdfFile);
+
+    // Servir el PDF como stream de descarga
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="reporte_${report.name.replace(/\s+/g, '_')}.pdf"`
+    );
+
+    const fileStream = fs.createReadStream(pdfPath);
+    fileStream.pipe(res);
   },
 
   // DELETE /api/reports/:id
