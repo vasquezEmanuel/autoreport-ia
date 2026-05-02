@@ -64,9 +64,18 @@ const extractFromPDFWithGemini = async (filePath, pdfFields) => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Leer el PDF como base64
-    const pdfBuffer = fs.readFileSync(filePath);
-    const pdfBase64 = pdfBuffer.toString('base64');
+    // Verificar si es URL de Supabase o path local
+    let pdfBase64;
+    if (filePath.startsWith('http')) {
+      // Descargar el PDF desde Supabase Storage
+      const response = await fetch(filePath);
+      const arrayBuffer = await response.arrayBuffer();
+      pdfBase64 = Buffer.from(arrayBuffer).toString('base64');
+    } else {
+      // Leer desde disco (desarrollo local)
+      const pdfBuffer = fs.readFileSync(filePath);
+      pdfBase64 = pdfBuffer.toString('base64');
+    }
 
     // Construir el prompt con los campos a extraer
     const fieldsDescription = pdfFields
