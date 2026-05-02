@@ -1,8 +1,7 @@
 'use strict';
 
-const path = require('path');
-const fs = require('fs');
 const uploadRepository = require('../repositories/upload.repository');
+const storageService = require('./storage.service');
 const { ValidationError, NotFoundError, ForbiddenError } = require('../utils/errors');
 
 const ALLOWED_MIMES = {
@@ -14,36 +13,33 @@ const ALLOWED_MIMES = {
   ],
 };
 
-const safeDeleteFile = (filePath) => {
-  try {
-    if (filePath && fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-  } catch (_err) {
-    // Ignorar error si no se puede eliminar
-  }
-};
-
 const uploadService = {
   saveFile: async ({ file, type, userId }) => {
     const allowedMimes = ALLOWED_MIMES[type];
 
     if (!allowedMimes) {
-      safeDeleteFile(file.path);
       throw new ValidationError(`Tipo de archivo no válido: ${type}`);
     }
 
     if (!allowedMimes.includes(file.mimetype)) {
-      safeDeleteFile(file.path);
       throw new ValidationError(
         `El archivo no corresponde al tipo ${type}. Tipo recibido: ${file.mimetype}`
       );
     }
 
+    // Subir a Supabase Storage
+    const { publicUrl } = await storageService.uploadFile({
+      filePath: file.path,
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      userId,
+    });
+
+    // Guardar en BD con la URL de Supabase como storedPath
     const upload = await uploadRepository.create({
       userId,
       fileName: file.originalname,
-      storedPath: file.path,
+      storedPath: publicUrl, // ← URL de Supabase en vez de path local
       fileType: type,
       fileSizeBytes: BigInt(file.size),
     });
@@ -58,13 +54,8 @@ const uploadService = {
   getUpload: async ({ uploadId, userId }) => {
     const upload = await uploadRepository.findById(uploadId);
 
-    if (!upload) {
-      throw new NotFoundError('Upload');
-    }
-
-    if (upload.userId !== userId) {
-      throw new ForbiddenError('No tienes acceso a este archivo.');
-    }
+    if (!upload) throw new NotFoundError('Upload');
+    if (upload.userId !== userId) throw new ForbiddenError();
 
     return upload;
   },
