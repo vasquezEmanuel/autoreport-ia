@@ -64,20 +64,23 @@ const extractFromPDFWithGemini = async (filePath, pdfFields) => {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // Verificar si es URL de Supabase o path local
+    // Descargar o leer el PDF
     let pdfBase64;
     if (filePath.startsWith('http')) {
-      // Descargar el PDF desde Supabase Storage
+      console.log('[AI] Descargando PDF desde URL:', filePath);
       const response = await fetch(filePath);
+      console.log('[AI] Status de descarga:', response.status);
+      if (!response.ok) {
+        throw new Error(`No se pudo descargar el PDF: ${response.status}`);
+      }
       const arrayBuffer = await response.arrayBuffer();
       pdfBase64 = Buffer.from(arrayBuffer).toString('base64');
+      console.log('[AI] PDF descargado, tamaño base64:', pdfBase64.length);
     } else {
-      // Leer desde disco (desarrollo local)
       const pdfBuffer = fs.readFileSync(filePath);
       pdfBase64 = pdfBuffer.toString('base64');
     }
 
-    // Construir el prompt con los campos a extraer
     const fieldsDescription = pdfFields
       .map((f) => `- "${f.name}": ${f.instruction} (tipo: ${f.type})`)
       .join('\n');
@@ -99,6 +102,8 @@ Responde ÚNICAMENTE con un array JSON válido con este formato exacto:
 Usa "REVIEW" si el valor no es claro o tiene baja confianza.
 No incluyas explicaciones, solo el JSON.`;
 
+    console.log('[AI] Enviando a Gemini...');
+
     const result = await model.generateContent([
       {
         inlineData: {
@@ -110,20 +115,19 @@ No incluyas explicaciones, solo el JSON.`;
     ]);
 
     const responseText = result.response.text();
+    console.log('[AI] Respuesta de Gemini:', responseText.substring(0, 200));
 
-    // Limpiar respuesta y parsear JSON
     const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     if (!jsonMatch) throw new Error('Respuesta de IA no es JSON válido');
 
     const extracted = JSON.parse(jsonMatch[0]);
 
-    // Agregar source PDF a cada campo
     return extracted.map((item) => ({
       ...item,
       source: 'PDF',
     }));
   } catch (error) {
-    // Si Gemini falla retornar campos con status REVIEW
+    console.error('[AI] Error en Gemini:', error.message);
     return pdfFields.map((field) => ({
       fieldName: field.name,
       value: 'Error al extraer — revisar manualmente',
