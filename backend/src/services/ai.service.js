@@ -62,7 +62,7 @@ const extractFromPDFWithGemini = async (filePath, pdfFields) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     // Descargar o leer el PDF
     let pdfBase64;
@@ -147,7 +147,7 @@ const generateSummary = async (reportName, extractedFields) => {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const fieldsText = extractedFields
       .map((f) => `${f.fieldName}: ${f.value} (fuente: ${f.source})`)
