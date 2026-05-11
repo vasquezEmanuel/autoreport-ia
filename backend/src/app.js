@@ -10,6 +10,7 @@ const swaggerUi = require('swagger-ui-express');
 
 const swaggerSpec = require('./config/swagger');
 const { errorHandler } = require('./middleware/errorHandler.middleware');
+const { generalLimiter, authLimiter } = require('./middleware/rateLimit.middleware');
 const logger = require('./utils/logger');
 
 const authRoutes = require('./routes/auth.routes');
@@ -36,6 +37,8 @@ JSON.stringify = (
 
 // ─── MIDDLEWARES ──────────────────────────────────────────────────────────────
 app.use(helmet());
+
+app.use(generalLimiter);
 
 app.use(
   cors({
@@ -69,7 +72,7 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/configurators', configuratorRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/reports', reportRoutes);
