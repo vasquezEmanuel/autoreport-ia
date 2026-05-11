@@ -43,6 +43,24 @@ const errorHandler = (err, req, res, _next) => {
     });
   }
 
+  // Error de rate limit
+  if (err.status === 429) {
+    return res.status(429).json({
+      error: true,
+      message: err.message || 'Demasiadas solicitudes.',
+      code: 'RATE_LIMIT_EXCEEDED',
+    });
+  }
+
+  // Error de conexión a BD
+  if (err.code === 'P1001' || err.code === 'P1002') {
+    return res.status(503).json({
+      error: true,
+      message: 'Base de datos no disponible temporalmente.',
+      code: 'DATABASE_UNAVAILABLE',
+    });
+  }
+
   // ── Errores operacionales propios ─────────────────────────────
   if (err instanceof AppError && err.isOperational) {
     const response = {

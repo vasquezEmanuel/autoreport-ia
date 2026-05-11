@@ -177,6 +177,40 @@ const reportService = {
     const report = await reportRepository.findById(id);
     if (!report) throw new NotFoundError('Reporte');
     if (report.userId !== userId) throw new ForbiddenError();
+
+    // Eliminar archivos de Supabase Storage si existen
+    const storageService = require('./storage.service');
+
+    if (report.pdfUpload?.storedPath?.startsWith('http')) {
+      try {
+        const url = new URL(report.pdfUpload.storedPath);
+        const pathParts = url.pathname.split('/uploads/')[1];
+        if (pathParts) await storageService.deleteFile(pathParts);
+      } catch {
+        /* continuar aunque falle */
+      }
+    }
+
+    if (report.excelUpload?.storedPath?.startsWith('http')) {
+      try {
+        const url = new URL(report.excelUpload.storedPath);
+        const pathParts = url.pathname.split('/uploads/')[1];
+        if (pathParts) await storageService.deleteFile(pathParts);
+      } catch {
+        /* continuar aunque falle */
+      }
+    }
+
+    // Eliminar PDF generado del disco si existe
+    if (report.pdfPath) {
+      const fs = require('fs');
+      try {
+        if (fs.existsSync(report.pdfPath)) fs.unlinkSync(report.pdfPath);
+      } catch {
+        /* continuar aunque falle */
+      }
+    }
+
     await reportRepository.delete(id);
   },
 };
