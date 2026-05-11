@@ -1,42 +1,52 @@
-# autoreport-ia
+# AutoReport IA
 
-API REST para la generación automática de reportes con IA.
-
----
-
-## Requisitos
-
-- Docker Desktop instalado y en ejecución
-- Git
+Sistema de generación automática de reportes con Inteligencia Artificial.
 
 ---
 
-## Ejecución en local
+# Producción
 
-### 1. Clonar el repositorio y posicionarse en la rama `develop`
+| Recurso | URL |
+|---|---|
+| API | https://autoreport-ia.onrender.com |
+| Documentación | https://autoreport-ia.onrender.com/api/docs |
+| Health Check | https://autoreport-ia.onrender.com/api/health |
+
+---
+
+# Requisitos para desarrollo local
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y en ejecución
+- [Git](https://git-scm.com/)
+
+---
+
+# Instalación local
+
+## 1. Clonar y configurar
 
 ```bash
 git clone https://github.com/TU_USUARIO/autoreport-ia.git
+
 cd autoreport-ia
+
 git checkout develop
-```
 
----
-
-### 2. Configurar variables de entorno
-
-```bash
 cp backend/.env.example backend/.env
 ```
 
-Editar el archivo `backend/.env` y completar:
+Editar `backend/.env` y completar los siguientes valores:
 
-- `JWT_SECRET`: string aleatorio de mínimo 32 caracteres
-- `ANTHROPIC_API_KEY`: obtener en https://console.anthropic.com
+```env
+JWT_SECRET=string_aleatorio_minimo_32_caracteres
+GEMINI_API_KEY=tu_api_key_de_google_ai_studio
+SUPABASE_URL=https://tu_proyecto.supabase.co
+SUPABASE_ANON_KEY=tu_anon_key
+```
 
 ---
 
-### 3. Levantar el entorno
+## 2. Levantar el entorno
 
 ```bash
 docker compose -f docker-compose.dev.yml up --build -d
@@ -44,7 +54,7 @@ docker compose -f docker-compose.dev.yml up --build -d
 
 ---
 
-### 4. Aplicar migraciones de base de datos
+## 3. Aplicar migraciones
 
 ```bash
 docker exec -it autoreport_api npx prisma migrate dev --name init
@@ -52,55 +62,98 @@ docker exec -it autoreport_api npx prisma migrate dev --name init
 
 ---
 
-### 5. Verificar que el sistema funciona
+## 4. Verificar funcionamiento
 
-- API: http://localhost:3000/api/health
-- Documentación: http://localhost:3000/api/docs
+| Servicio | URL |
+|---|---|
+| API | http://localhost:3000/api/health |
+| Swagger Docs | http://localhost:3000/api/docs |
 
 ---
 
-## Comandos útiles
+# Comandos útiles
+
+## Ver logs en tiempo real
 
 ```bash
-# Ver logs del backend
 docker logs autoreport_api -f
+```
 
-# Correr tests
+## Ejecutar tests
+
+```bash
 docker exec autoreport_api npm test
+```
 
-# Abrir explorador de base de datos
+## Prisma Studio
+
+```bash
 docker exec autoreport_api npx prisma studio --port 5555 --browser none
-# Luego abrir http://localhost:5555
+```
 
-# Detener todo
+Abrir en el navegador:
+
+```txt
+http://localhost:5555
+```
+
+## Detener contenedores
+
+```bash
 docker compose -f docker-compose.dev.yml down
 ```
 
----
-
-## Estructura del proyecto
+## Crear nueva migración
 
 ```bash
-backend/
-├── prisma/          # Schema y migraciones de base de datos
-└── src/
-    ├── config/      # Configuración (BD, Swagger, storage)
-    ├── controllers/ # Manejo de requests HTTP
-    ├── middleware/  # Auth, validación, manejo de errores
-    ├── repositories/# Acceso y queries a la base de datos
-    ├── routes/      # Definición de endpoints
-    ├── services/    # Lógica de negocio
-    ├── utils/       # Helpers (logger, errors, response)
-    └── validators/  # Esquemas de validación (Zod)
+docker exec -it autoreport_api npx prisma migrate dev --name nombre_cambio
 ```
 
 ---
 
-## Convención de commits
+# Estructura del proyecto
 
-- `feat:` nueva funcionalidad
-- `fix:` corrección de bugs
-- `chore:` tareas de mantenimiento o configuración
-- `test:` agregar o modificar tests
-- `docs:` documentación
-- `refactor:` refactorización de código
+```txt
+backend/
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
+│
+└── src/
+    ├── config/         # BD, Swagger, Storage
+    ├── controllers/    # Manejo de requests HTTP
+    ├── middleware/     # Auth, validación, rate limiting, errores
+    ├── repositories/   # Queries a la BD con Prisma
+    ├── routes/         # Definición de endpoints
+    ├── services/       # Lógica de negocio e integración con IA
+    ├── utils/          # Logger, errores, responses
+    └── validators/     # Schemas de validación con Zod
+```
+
+---
+
+# Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Runtime | Node.js 20 |
+| Framework | Express.js |
+| Base de datos | PostgreSQL (Supabase) |
+| ORM | Prisma |
+| IA | Google Gemini 2.0 Flash |
+| Almacenamiento | Supabase Storage |
+| Despliegue | Render |
+| Contenedores | Docker |
+
+---
+
+# Convención de commits
+
+```txt
+feat:      nueva funcionalidad
+fix:       corrección de bug
+chore:     configuración o mantenimiento
+test:      agregar o modificar tests
+docs:      documentación
+refactor:  refactorización
+```
