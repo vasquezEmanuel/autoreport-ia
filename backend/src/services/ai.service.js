@@ -15,21 +15,38 @@ const getGeminiClient = () => {
 };
 
 // ─── Extractor de datos Excel ─────────────────────────────────────────────────
-const extractExcelData = (filePath, excelColumns) => {
+const extractExcelData = async (filePath, excelColumns) => {
   try {
-    const workbook = XLSX.readFile(filePath);
+    let buffer;
+
+    // Si es URL de Supabase, descargar primero
+    if (filePath.startsWith('http')) {
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        throw new Error(`No se pudo descargar el Excel: ${response.status}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else {
+      buffer = require('fs').readFileSync(filePath);
+    }
+
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
     const results = [];
 
     for (const colConfig of excelColumns) {
       if (!colConfig.active) continue;
 
-      const sheet = workbook.Sheets[colConfig.sheet] || workbook.Sheets[workbook.SheetNames[0]];
+      const sheetName = colConfig.sheet || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName] || workbook.Sheets[workbook.SheetNames[0]];
 
       if (!sheet) continue;
 
       const cellRef = `${colConfig.column}${colConfig.startRow}`;
       const cell = sheet[cellRef];
       const value = cell ? String(cell.v) : null;
+
+      console.log(`[EXCEL] Buscando celda ${cellRef} en hoja "${sheetName}":`, value);
 
       results.push({
         fieldName: colConfig.label,
@@ -41,7 +58,8 @@ const extractExcelData = (filePath, excelColumns) => {
     }
 
     return results;
-  } catch {
+  } catch (error) {
+    console.error('[EXCEL] Error extrayendo datos:', error.message);
     return [];
   }
 };
@@ -185,7 +203,7 @@ const aiService = {
 
     // Extraer datos del Excel directamente
     if (excelUpload && excelColumns.length > 0) {
-      const excelResults = extractExcelData(excelUpload.storedPath, excelColumns);
+      const excelResults = await extractExcelData(excelUpload.storedPath, excelColumns);
       extractedFields.push(...excelResults);
     }
 
