@@ -32,8 +32,12 @@ const exportService = {
       const fileName = `report_${report.id}_${Date.now()}.pdf`;
       const filePath = path.join(REPORTS_DIR, fileName);
 
+      // Usar landscape si hay más de 4 campos para mejor visualización
+      const isLandscape = (extractedFields || []).length > 4;
+
       const doc = new PDFDocument({
         size: 'A4',
+        layout: isLandscape ? 'landscape' : 'portrait',
         margins: { top: 50, bottom: 50, left: 60, right: 60 },
       });
 
